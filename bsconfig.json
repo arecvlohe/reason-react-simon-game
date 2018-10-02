@@ -1,0 +1,13 @@
+{
+  "name": "practice-vim",
+  "refmt": 3,
+  "reason": { "react-jsx": 2 },
+  "sources": ["src"],
+  "package-specs": [
+    {
+      "module": "es6-global",
+      "in-source": false
+    }
+  ],
+  "bs-dependencies": ["reason-react", "bs-css"]
+}
