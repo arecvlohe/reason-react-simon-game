@@ -5,6 +5,43 @@ type state = {sequence};
 type action =
   | SetSequence(sequence);
 
+type bgColor =
+  | Green
+  | Red
+  | Blue
+  | Yellow;
+
+module Styles = {
+  open Css;
+  let container =
+    style([
+      display(`flex),
+      justifyContent(`center),
+      alignItems(`center),
+      minHeight(`vh(100.0)),
+    ]);
+  let boxes =
+    style([
+      display(`flex),
+      flexWrap(`wrap),
+      maxWidth(`px(500)),
+      maxHeight(`px(500)),
+    ]);
+  let box = (color: bgColor) => {
+    let baseStyle = [minHeight(`px(250)), minWidth(`px(250))];
+
+    let bgColor =
+      switch (color) {
+      | Green => backgroundColor(`hex("07f767"))
+      | Red => backgroundColor(`hex("f95e59"))
+      | Blue => backgroundColor(`hex("00bcea"))
+      | Yellow => backgroundColor(`hex("f4ed7c"))
+      };
+
+    style([bgColor, ...baseStyle]);
+  };
+};
+
 let component = ReasonReact.reducerComponent("App");
 
 let make = _children => {
@@ -23,16 +60,13 @@ let make = _children => {
     ();
   },
   render: self =>
-    <div>
-      {
-        self.state.sequence
-        |> Array.map(number =>
-             <span key={Js.Math.random() |> string_of_float}>
-               {number |> string_of_int |> ReasonReact.string}
-             </span>
-           )
-        |> ReasonReact.array
-      }
+    <div className=Styles.container>
+      <div className=Styles.boxes>
+        <div className={Styles.box(Green)} />
+        <div className={Styles.box(Red)} />
+        <div className={Styles.box(Blue)} />
+        <div className={Styles.box(Yellow)} />
+      </div>
     </div>,
 };
 
