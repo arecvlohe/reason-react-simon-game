@@ -5,12 +5,6 @@ type state = {sequence};
 type action =
   | SetSequence(sequence);
 
-type bgColor =
-  | Green
-  | Red
-  | Blue
-  | Yellow;
-
 module Styles = {
   open Css;
   let container =
@@ -27,7 +21,7 @@ module Styles = {
       maxWidth(`px(500)),
       maxHeight(`px(500)),
     ]);
-  let box = (color: bgColor) => {
+  let box = (color: Types.colors) => {
     let baseStyle = [minHeight(`px(250)), minWidth(`px(250))];
 
     let bgColor =
@@ -62,10 +56,19 @@ let make = _children => {
   render: self =>
     <div className=Styles.container>
       <div className=Styles.boxes>
-        <div className={Styles.box(Green)} />
-        <div className={Styles.box(Red)} />
-        <div className={Styles.box(Blue)} />
-        <div className={Styles.box(Yellow)} />
+        <div
+          className={Styles.box(Green)}
+          onClick={_e => Sounds.green##play()}
+        />
+        <div className={Styles.box(Red)} onClick={_e => Sounds.red##play()} />
+        <div
+          className={Styles.box(Blue)}
+          onClick={_e => Sounds.blue##play()}
+        />
+        <div
+          className={Styles.box(Yellow)}
+          onClick={_e => Sounds.yellow##play()}
+        />
       </div>
     </div>,
 };
