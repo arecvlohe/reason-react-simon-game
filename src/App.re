@@ -4,13 +4,16 @@ type state = {
   sequence,
   level: int,
   active: option(Types.colors),
+  input: list(Types.colors),
 };
 
 type action =
   | SetSequence(sequence)
   | PlaySequence
   | PlaySound(Types.colors)
-  | ResetColor;
+  | ResetColor
+  | Input(Types.colors)
+  | CheckInput;
 
 module Styles = {
   open Css;
@@ -59,7 +62,7 @@ let component = ReasonReact.reducerComponent("App");
 
 let make = _children => {
   ...component,
-  initialState: () => {sequence: [], level: 5, active: None},
+  initialState: () => {sequence: [], level: 1, active: None, input: []},
   reducer: (action, state) =>
     switch (action) {
     | SetSequence(list) => ReasonReact.Update({...state, sequence: list})
@@ -76,7 +79,7 @@ let make = _children => {
                 let _id =
                   Js.Global.setTimeout(
                     () => self.send(PlaySound(color)),
-                    index * 1000,
+                    (index + 1) * 1000,
                   );
                 ();
               },
@@ -98,6 +101,46 @@ let make = _children => {
         ),
       )
     | ResetColor => ReasonReact.Update({...state, active: None})
+    | Input(color) =>
+      ReasonReact.UpdateWithSideEffects(
+        {...state, input: [color, ...state.input]},
+        (self => self.send(CheckInput)),
+      )
+    | CheckInput =>
+      let {level, input, sequence} = state;
+      let currentUserColor = Belt.List.headExn(input);
+      let inputLength = Belt.List.length(input);
+      let currentSequenceColor = Belt.List.getExn(sequence, inputLength - 1);
+
+      switch (
+        currentUserColor === currentSequenceColor,
+        inputLength === level,
+      ) {
+      | (false, _) =>
+        ReasonReact.UpdateWithSideEffects(
+          {...state, input: []},
+          (
+            self => {
+              Sounds.error##play();
+              self.send(PlaySequence);
+            }
+          ),
+        )
+      | (true, false) =>
+        ReasonReact.SideEffects(
+          (self => self.send(PlaySound(currentUserColor))),
+        )
+      | (true, true) =>
+        ReasonReact.UpdateWithSideEffects(
+          {...state, input: [], level: state.level + 1},
+          (
+            self => {
+              self.send(PlaySound(currentUserColor));
+              self.send(PlaySequence);
+            }
+          ),
+        )
+      };
     },
   didMount: self => {
     let list =
@@ -124,19 +167,19 @@ let make = _children => {
       <div className=Styles.boxes>
         <div
           className={Styles.box(~bgColor=Green, ~active)}
-          onClick={_e => Sounds.green##play()}
+          onClick={_e => self.send(Input(Green))}
         />
         <div
           className={Styles.box(~bgColor=Red, ~active)}
-          onClick={_e => Sounds.red##play()}
+          onClick={_e => self.send(Input(Red))}
         />
         <div
           className={Styles.box(~bgColor=Blue, ~active)}
-          onClick={_e => Sounds.blue##play()}
+          onClick={_e => self.send(Input(Blue))}
         />
         <div
           className={Styles.box(~bgColor=Yellow, ~active)}
-          onClick={_e => Sounds.yellow##play()}
+          onClick={_e => self.send(Input(Yellow))}
         />
       </div>
       <div className=Styles.controls>
