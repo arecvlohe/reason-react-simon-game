@@ -48,7 +48,11 @@ module Styles = {
       maxHeight(`px(500)),
     ]);
   let box = (~bgColor: Types.colors, ~active: option(Types.colors)) => {
-    let baseStyle = [minHeight(`px(250)), minWidth(`px(250))];
+    let baseStyle = [
+      minHeight(`px(250)),
+      minWidth(`px(250)),
+      border(`px(0), `none, `transparent),
+    ];
 
     let opacity =
       switch (bgColor, active) {
@@ -74,6 +78,22 @@ module Styles = {
   let button = style([fontSize(`px(14))]);
   let buttons = style([marginTop(`px(10))]);
 };
+
+let makeRandomSequence = (~len=5, ()) =>
+  Belt.List.makeBy(
+    len,
+    _i => {
+      open Types;
+      let num = Js.Math.floor(Js.Math.random() *. 4.0 +. 1.0);
+      switch (num) {
+      | 1 => Green
+      | 2 => Red
+      | 3 => Blue
+      | 4 => Yellow
+      | _ => Green
+      };
+    },
+  );
 
 let component = ReasonReact.reducerComponent("App");
 
@@ -143,13 +163,14 @@ let make = _children => {
       let currentUserColor = Belt.List.headExn(input);
       let inputLength = Belt.List.length(input);
       let currentSequenceColor = Belt.List.getExn(sequence, inputLength - 1);
-
+      let isLastInSequence = inputLength === Belt.List.length(sequence);
       switch (
         currentUserColor === currentSequenceColor,
         inputLength === level,
         isStrict,
+        isLastInSequence,
       ) {
-      | (false, _, false) =>
+      | (false, _, false, _) =>
         ReasonReact.UpdateWithSideEffects(
           {...state, input: []},
           (
@@ -159,7 +180,7 @@ let make = _children => {
             }
           ),
         )
-      | (false, _, true) =>
+      | (false, _, true, _) =>
         ReasonReact.UpdateWithSideEffects(
           {...state, input: [], level: 1},
           (
@@ -169,11 +190,11 @@ let make = _children => {
             }
           ),
         )
-      | (true, false, _) =>
+      | (true, false, _, false) =>
         ReasonReact.SideEffects(
           (self => self.send(PlaySound(currentUserColor))),
         )
-      | (true, true, _) =>
+      | (true, true, _, false) =>
         ReasonReact.UpdateWithSideEffects(
           {...state, input: [], level: state.level + 1},
           (
@@ -183,11 +204,22 @@ let make = _children => {
             }
           ),
         )
+      | (true, _, _, true) =>
+        let list = makeRandomSequence();
+        ReasonReact.UpdateWithSideEffects(
+          {...state, input: [], level: 1, sequence: list},
+          (
+            self => {
+              self.send(PlaySound(currentUserColor));
               let _id =
                 Js.Global.setTimeout(
                   () => Window.alert("You won!", window),
                   400,
                 );
+              ();
+            }
+          ),
+        );
       };
     | Playback(bool) => ReasonReact.Update({...state, isPlaying: bool})
     | Reset =>
@@ -198,21 +230,7 @@ let make = _children => {
     | SetStrict => ReasonReact.Update({...state, isStrict: !state.isStrict})
     },
   didMount: self => {
-    let list =
-      Belt.List.makeBy(
-        20,
-        _i => {
-          open Types;
-          let num = Js.Math.floor(Js.Math.random() *. 4.0 +. 1.0);
-          switch (num) {
-          | 1 => Green
-          | 2 => Red
-          | 3 => Blue
-          | 4 => Yellow
-          | _ => Green
-          };
-        },
-      );
+    let list = makeRandomSequence();
     self.send(SetSequence(list));
     ();
   },
