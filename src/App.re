@@ -221,19 +221,23 @@ let make = _children => {
     <div className=Styles.container>
       <h1> "Simon Game in ReasonReact"->ReasonReact.string </h1>
       <div className=Styles.boxes>
-        <div
+        <button
+          disabled=isPlaying
           className={Styles.box(~bgColor=Green, ~active)}
           onClick={_e => self.send(Input(Green))}
         />
-        <div
+        <button
+          disabled=isPlaying
           className={Styles.box(~bgColor=Red, ~active)}
           onClick={_e => self.send(Input(Red))}
         />
-        <div
+        <button
+          disabled=isPlaying
           className={Styles.box(~bgColor=Blue, ~active)}
           onClick={_e => self.send(Input(Blue))}
         />
-        <div
+        <button
+          disabled=isPlaying
           className={Styles.box(~bgColor=Yellow, ~active)}
           onClick={_e => self.send(Input(Yellow))}
         />
