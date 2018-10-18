@@ -1,3 +1,5 @@
+open Webapi.Dom;
+
 type sequence = list(Types.colors);
 
 type state = {
@@ -181,6 +183,11 @@ let make = _children => {
             }
           ),
         )
+              let _id =
+                Js.Global.setTimeout(
+                  () => Window.alert("You won!", window),
+                  400,
+                );
       };
     | Playback(bool) => ReasonReact.Update({...state, isPlaying: bool})
     | Reset =>
