@@ -9,5 +9,5 @@
       "in-source": false
     }
   ],
-  "bs-dependencies": ["reason-react", "bs-css"]
+  "bs-dependencies": ["reason-react", "bs-css", "bs-webapi"]
 }

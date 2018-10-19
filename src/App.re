@@ -1,3 +1,5 @@
+open Webapi.Dom;
+
 type sequence = list(Types.colors);
 
 type state = {
@@ -5,6 +7,8 @@ type state = {
   level: int,
   active: option(Types.colors),
   input: list(Types.colors),
+  isStrict: bool,
+  isPlaying: bool,
 };
 
 type action =
@@ -13,10 +17,23 @@ type action =
   | PlaySound(Types.colors)
   | ResetColor
   | Input(Types.colors)
-  | CheckInput;
+  | CheckInput
+  | Reset
+  | SetStrictness
+  | SetPlaying;
 
 module Styles = {
   open Css;
+
+  global(
+    "body",
+    [
+      fontFamily(
+        "-apple-system,BlinkMacSystemFont,\"Segoe UI\",Roboto,Oxygen-Sans,Ubuntu,Cantarell,\"Helvetica Neue\",sans-serif",
+      ),
+    ],
+  );
+
   let container =
     style([
       display(`flex),
@@ -25,6 +42,7 @@ module Styles = {
       minHeight(`vh(100.0)),
       flexDirection(`column),
     ]);
+
   let boxes =
     style([
       display(`flex),
@@ -32,8 +50,13 @@ module Styles = {
       maxWidth(`px(500)),
       maxHeight(`px(500)),
     ]);
+
   let box = (~bgColor: Types.colors, ~active: option(Types.colors)) => {
-    let baseStyle = [minHeight(`px(250)), minWidth(`px(250))];
+    let baseStyle = [
+      minHeight(`px(250)),
+      minWidth(`px(250)),
+      border(`px(0), `none, `transparent),
+    ];
 
     let opacity =
       switch (bgColor, active) {
@@ -55,14 +78,38 @@ module Styles = {
 
     style([bgColor, opacity, ...baseStyle]);
   };
-  let controls = style([marginTop(`px(10))]);
+  let controls = style([marginTop(`px(10)), textAlign(`center)]);
+  let buttons = style([marginTop(`px(10))]);
 };
+
+let makeSequence = (~len=5, ()) =>
+  Belt.List.makeBy(
+    len,
+    _i => {
+      open Types;
+      let num = Js.Math.floor(Js.Math.random() *. 4.0 +. 1.0);
+      switch (num) {
+      | 1 => Green
+      | 2 => Red
+      | 3 => Blue
+      | 4 => Yellow
+      | _ => Green
+      };
+    },
+  );
 
 let component = ReasonReact.reducerComponent("App");
 
 let make = _children => {
   ...component,
-  initialState: () => {sequence: [], level: 1, active: None, input: []},
+  initialState: () => {
+    sequence: [],
+    level: 1,
+    active: None,
+    input: [],
+    isStrict: false,
+    isPlaying: false,
+  },
   reducer: (action, state) =>
     switch (action) {
     | SetSequence(list) => ReasonReact.Update({...state, sequence: list})
@@ -70,9 +117,10 @@ let make = _children => {
       let l =
         Belt.List.take(state.sequence, state.level)
         ->Belt.Option.getWithDefault([]);
-      ReasonReact.SideEffects(
+      ReasonReact.UpdateWithSideEffects(
+        {...state, isPlaying: true},
         (
-          self =>
+          self => {
             Belt.List.forEachWithIndex(
               l,
               (index, color) => {
@@ -83,7 +131,15 @@ let make = _children => {
                   );
                 ();
               },
-            )
+            );
+
+            let _id =
+              Js.Global.setTimeout(
+                () => self.send(SetPlaying),
+                state.level * 1000 + 300,
+              );
+            ();
+          }
         ),
       );
     | PlaySound(color) =>
@@ -107,16 +163,18 @@ let make = _children => {
         (self => self.send(CheckInput)),
       )
     | CheckInput =>
-      let {level, input, sequence} = state;
+      let {level, input, sequence, isStrict} = state;
       let currentUserColor = Belt.List.headExn(input);
       let inputLength = Belt.List.length(input);
       let currentSequenceColor = Belt.List.getExn(sequence, inputLength - 1);
-
+      let isEnd = inputLength === Belt.List.length(sequence);
       switch (
         currentUserColor === currentSequenceColor,
         inputLength === level,
+        isStrict,
+        isEnd,
       ) {
-      | (false, _) =>
+      | (false, _, false, _) =>
         ReasonReact.UpdateWithSideEffects(
           {...state, input: []},
           (
@@ -126,11 +184,21 @@ let make = _children => {
             }
           ),
         )
-      | (true, false) =>
+      | (false, _, true, _) =>
+        ReasonReact.UpdateWithSideEffects(
+          {...state, input: [], level: 1},
+          (
+            self => {
+              Sounds.error##play();
+              self.send(PlaySequence);
+            }
+          ),
+        )
+      | (true, false, _, false) =>
         ReasonReact.SideEffects(
           (self => self.send(PlaySound(currentUserColor))),
         )
-      | (true, true) =>
+      | (true, true, _, false) =>
         ReasonReact.UpdateWithSideEffects(
           {...state, input: [], level: state.level + 1},
           (
@@ -140,53 +208,80 @@ let make = _children => {
             }
           ),
         )
+      | (true, _, _, true) =>
+        let list = makeSequence();
+        ReasonReact.UpdateWithSideEffects(
+          {...state, input: [], level: 1, sequence: list},
+          (
+            self => {
+              self.send(PlaySound(currentUserColor));
+              let _id =
+                Js.Global.setTimeout(
+                  () => Window.alert("You won!", window),
+                  400,
+                );
+              ();
+            }
+          ),
+        );
       };
+    | Reset => ReasonReact.Update({...state, input: [], level: 1})
+    | SetStrictness =>
+      ReasonReact.Update({...state, isStrict: !state.isStrict})
+    | SetPlaying =>
+      ReasonReact.Update({...state, isPlaying: !state.isPlaying})
     },
   didMount: self => {
-    let list =
-      Belt.List.makeBy(
-        20,
-        _i => {
-          open Types;
-          let num = Js.Math.floor(Js.Math.random() *. 4.0 +. 1.0);
-          switch (num) {
-          | 1 => Green
-          | 2 => Red
-          | 3 => Blue
-          | 4 => Yellow
-          | _ => Green
-          };
-        },
-      );
+    let list = makeSequence();
     self.send(SetSequence(list));
     ();
   },
   render: self => {
-    let {level, active} = self.state;
+    let {level, active, isStrict, isPlaying} = self.state;
     <div className=Styles.container>
+      <h1> "Simon Game in ReasonReact"->ReasonReact.string </h1>
       <div className=Styles.boxes>
-        <div
+        <button
+          type_="button"
           className={Styles.box(~bgColor=Green, ~active)}
           onClick={_e => self.send(Input(Green))}
+          disabled=isPlaying
         />
-        <div
+        <button
+          type_="button"
           className={Styles.box(~bgColor=Red, ~active)}
           onClick={_e => self.send(Input(Red))}
+          disabled=isPlaying
         />
-        <div
+        <button
+          type_="button"
           className={Styles.box(~bgColor=Blue, ~active)}
           onClick={_e => self.send(Input(Blue))}
+          disabled=isPlaying
         />
-        <div
+        <button
+          type_="button"
           className={Styles.box(~bgColor=Yellow, ~active)}
           onClick={_e => self.send(Input(Yellow))}
+          disabled=isPlaying
         />
       </div>
       <div className=Styles.controls>
-        <div> {{j|Level: $level|j} |> ReasonReact.string} </div>
         <div>
-          <button onClick={_e => self.send(PlaySequence)}>
+          <span> "Strict"->ReasonReact.string </span>
+          <input
+            type_="checkbox"
+            checked=isStrict
+            onChange={_e => self.send(SetStrictness)}
+          />
+        </div>
+        <div> {{j|Level: $level|j} |> ReasonReact.string} </div>
+        <div className=Styles.buttons>
+          <button onClick={_e => self.send(PlaySequence)} disabled=isPlaying>
             {"Start" |> ReasonReact.string}
+          </button>
+          <button onClick={_e => self.send(Reset)} disabled=isPlaying>
+            "Reset"->ReasonReact.string
           </button>
         </div>
       </div>
