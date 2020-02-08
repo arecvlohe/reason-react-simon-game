@@ -4,3 +4,4 @@ node_modules
 # auto-generated files/folders
 lib
 .merlin
+.bsb.lock

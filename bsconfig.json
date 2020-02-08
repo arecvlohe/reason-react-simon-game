@@ -1,7 +1,7 @@
 {
-  "name": "practice-vim",
+  "name": "reason-react-simon-game",
   "refmt": 3,
-  "reason": { "react-jsx": 2 },
+  "reason": { "react-jsx": 3 },
   "sources": ["src"],
   "package-specs": [
     {
@@ -9,5 +9,5 @@
       "in-source": false
     }
   ],
-  "bs-dependencies": ["reason-react", "bs-css"]
+  "bs-dependencies": ["reason-react", "bs-css", "reason-react-update"]
 }

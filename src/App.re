@@ -5,35 +5,31 @@ type state = {sequence};
 type action =
   | SetSequence(sequence);
 
-let component = ReasonReact.reducerComponent("App");
+[@react.component]
+let make = () => {
+  let (state, send) =
+    ReactUpdate.useReducer({sequence: [||]}, (action, _state) =>
+      switch (action) {
+      | SetSequence(array) => Update({sequence: array})
+      }
+    );
 
-let make = _children => {
-  ...component,
-  initialState: () => {sequence: [||]},
-  reducer: (action, _state) =>
-    switch (action) {
-    | SetSequence(array) => ReasonReact.Update({sequence: array})
-    },
-  didMount: self => {
+  React.useEffect0(() => {
     let array =
       Belt.Array.makeBy(20, _i =>
         Js.Math.floor(Js.Math.random() *. 4.0 +. 1.0)
       );
-    self.send(SetSequence(array));
-    ();
-  },
-  render: self =>
-    <div>
-      {
-        self.state.sequence
-        |> Array.map(number =>
-             <span key={Js.Math.random() |> string_of_float}>
-               {number |> string_of_int |> ReasonReact.string}
-             </span>
-           )
-        |> ReasonReact.array
-      }
-    </div>,
-};
+    send(SetSequence(array));
+    None;
+  });
 
-let default = ReasonReact.wrapReasonForJs(~component, _jsProps => make([||]));
+  <div>
+    {state.sequence
+     |> Array.map(number =>
+          <span key={Js.Math.random() |> Js.Float.toString}>
+            {number |> string_of_int |> ReasonReact.string}
+          </span>
+        )
+     |> React.array}
+  </div>;
+};
