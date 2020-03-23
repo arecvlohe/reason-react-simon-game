@@ -9,5 +9,10 @@
       "in-source": false
     }
   ],
-  "bs-dependencies": ["reason-react", "bs-css", "reason-react-update"]
+  "bs-dependencies": [
+    "reason-react",
+    "bs-css",
+    "reason-react-update",
+    "bs-css-emotion"
+  ]
 }
