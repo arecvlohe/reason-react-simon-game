@@ -67,10 +67,22 @@ let make = () => {
 
   <div className=Styles.container>
     <div className=Styles.boxes>
-      <div className={Styles.box(Green)} />
-      <div className={Styles.box(Red)} />
-      <div className={Styles.box(Blue)} />
-      <div className={Styles.box(Yellow)} />
+      <div
+        className={Styles.box(Green)}
+        onClick={_e => Sound.green->Audio.play}
+      />
+      <div
+        className={Styles.box(Red)}
+        onClick={_e => Sound.red->Audio.play}
+      />
+      <div
+        className={Styles.box(Blue)}
+        onClick={_e => Sound.blue->Audio.play}
+      />
+      <div
+        className={Styles.box(Yellow)}
+        onClick={_e => Sound.yellow->Audio.play}
+      />
     </div>
   </div>;
 };
